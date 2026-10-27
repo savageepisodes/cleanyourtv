@@ -364,6 +364,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (festive) updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
+            wallpaperPlayer.refreshKodiArtwork();
             updateWeather();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -935,6 +936,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (showStats) startStats();
         sky.update();
         wallpaperPlayer.start();
+        wallpaperPlayer.refreshKodiArtwork();
+        if (aboveChannelAdapter != null) aboveChannelAdapter.reload();
+        if (belowChannelAdapter != null) belowChannelAdapter.reload();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();

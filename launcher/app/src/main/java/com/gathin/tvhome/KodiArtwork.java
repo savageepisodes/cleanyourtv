@@ -40,6 +40,11 @@ final class KodiArtwork {
         return Collections.unmodifiableMap(TITLES);
     }
 
+    static synchronized void invalidateCache() {
+        cachedList = null;
+        lastScanTime = 0;
+    }
+
     static synchronized List<File> getLandscapeArtwork() {
         return getFanartArtwork();
     }

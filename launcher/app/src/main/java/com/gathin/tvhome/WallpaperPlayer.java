@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -38,6 +39,8 @@ import java.util.concurrent.Executors;
 
 /** Displays and rotates a theme's or Kodi's local wallpaper images while Home is visible, with smooth crossfade and subtle slow zoom. */
 final class WallpaperPlayer {
+    private final Context context;
+    private final Config config;
     private final FrameLayout root;
     private final ImageView imageA;
     private final ImageView imageB;
@@ -59,8 +62,8 @@ final class WallpaperPlayer {
     private boolean closed;
     private boolean loading;
     private String displayed = "";
-    private final TextView caption;
-    private final Map<String, String> names;
+    private TextView caption;
+    private final Map<String, String> names = new HashMap<>();
     private final Map<String, Set<String>> moods;
     private final String latitude, longitude;
     private LocalDate sunDay;
@@ -79,6 +82,8 @@ final class WallpaperPlayer {
     private final FrameLayout wallpaperContainer;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
+        this.context = context;
+        this.config = config;
         this.root = root;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationSeconds > 0
@@ -132,7 +137,7 @@ final class WallpaperPlayer {
                 captionNames = WallpaperCaptions.read(files.get(0).getParentFile());
             }
         }
-        names = captionNames;
+        names.putAll(captionNames);
         caption = names.isEmpty() ? null : makeCaption(context, root);
 
         Log.i("TvHome.Wall", "init: enabled=" + config.wallpaperEnabled + " files=" + files.size() + " interval=" + interval);
@@ -142,6 +147,50 @@ final class WallpaperPlayer {
             showFirst();
         } else {
             Log.w("TvHome.Wall", "init: wallpaper not enabled or files empty! enabled=" + config.wallpaperEnabled + " files=" + files.size());
+        }
+    }
+
+    void refreshKodiArtwork() {
+        if (closed || config == null || !Config.WALLPAPER_SOURCE_KODI.equalsIgnoreCase(config.wallpaperSource)) return;
+        decoder.execute(() -> {
+            KodiArtwork.invalidateCache();
+            List<File> freshKodi = KodiArtwork.getLandscapeArtwork();
+            Map<String, String> titles = KodiArtwork.getTitles();
+            if (freshKodi != null && !freshKodi.isEmpty()) {
+                handler.post(() -> refreshFiles(freshKodi, titles));
+            }
+        });
+    }
+
+    void refreshFiles(List<File> newFiles, Map<String, String> newCaptions) {
+        if (newFiles == null || newFiles.isEmpty() || closed) return;
+        boolean wasEmpty = this.files.isEmpty();
+        if (!wasEmpty && this.files.size() == newFiles.size() && this.files.equals(newFiles)) {
+            if (newCaptions != null) {
+                this.names.clear();
+                this.names.putAll(newCaptions);
+            }
+            return;
+        }
+
+        this.files.clear();
+        this.files.addAll(newFiles);
+        if (newCaptions != null) {
+            this.names.clear();
+            this.names.putAll(newCaptions);
+        }
+        if (caption == null && !this.names.isEmpty() && config != null && config.wallpaperCaptions) {
+            caption = makeCaption(context, root);
+        }
+        if (wasEmpty && active && !closed) {
+            if (wallpaperContainer.getParent() == null) {
+                root.addView(wallpaperContainer, 0, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            showFirst();
+            scheduleNextRotation();
+        } else if (active && !closed) {
+            scheduleNextRotation();
         }
     }
 
