@@ -24,6 +24,15 @@ public final class LauncherSettingsActivity extends Activity {
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
     private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private TextView wallpaperChoice;
+    private TextView wallpaperSourceChoice;
+    private TextView wallpaperIntervalChoice;
+    private TextView screensaverChoice;
+    private TextView channelGapChoice;
+    private String wallpaperSource;
+    private int wallpaperInterval;
+    private int screensaverIdle;
+    private static final int[] INTERVAL_SECONDS = {5, 10, 15, 30, 60, 180, 300};
+    private static final int[] SCREENSAVER_MINUTES = {0, 1, 3, 5, 10, 15, 30, 60};
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -96,6 +105,14 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        wallpaperSourceChoice = findViewById(R.id.wallpaperSourceChoice);
+        wallpaperSourceChoice.setOnClickListener(v -> showWallpaperSourcePicker());
+        wallpaperIntervalChoice = findViewById(R.id.wallpaperIntervalChoice);
+        wallpaperIntervalChoice.setOnClickListener(v -> showWallpaperIntervalPicker());
+        screensaverChoice = findViewById(R.id.screensaverChoice);
+        screensaverChoice.setOnClickListener(v -> showScreensaverPicker());
+        channelGapChoice = findViewById(R.id.channelGapChoice);
+        channelGapChoice.setOnClickListener(v -> showChannelGapPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -123,7 +140,7 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.CHANNEL_HEADER_GAP_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -232,13 +249,48 @@ public final class LauncherSettingsActivity extends Activity {
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
+        wallpaperSource = choices.getString(Config.WALLPAPER_SOURCE_KEY, null);
+        if (wallpaperSource == null) {
+            Config activeCfg = Config.load(this);
+            wallpaperSource = activeCfg.wallpaperSource;
+        }
+        boolean isKodi = Config.WALLPAPER_SOURCE_KODI.equalsIgnoreCase(wallpaperSource);
+        wallpaperChoice.setVisibility(isKodi ? View.GONE : View.VISIBLE);
+        String sourceLabel = isKodi
+                ? getString(R.string.wallpaper_source_kodi) : getString(R.string.wallpaper_source_theme);
+        wallpaperSourceChoice.setText(getString(R.string.wallpaper_source_label, sourceLabel));
+
+        wallpaperInterval = choices.getInt(Config.WALLPAPER_INTERVAL_KEY, 15);
+        String intervalStr = formatIntervalSeconds(wallpaperInterval);
+        wallpaperIntervalChoice.setText(getString(R.string.wallpaper_interval_label, intervalStr));
+
+        screensaverIdle = choices.getInt(Config.SCREENSAVER_IDLE_KEY, 5);
+        String idleStr = screensaverIdle <= 0 ? getString(R.string.screensaver_off)
+                : (screensaverIdle == 1 ? getString(R.string.minute_single) : getString(R.string.minutes_format, screensaverIdle));
+        screensaverChoice.setText(getString(R.string.screensaver_label, idleStr));
+
+        String gap = choices.getString(Config.CHANNEL_HEADER_GAP_KEY, Config.GAP_MEDIUM);
+        String gapLabel = Config.GAP_SMALL.equalsIgnoreCase(gap) ? getString(R.string.gap_small)
+                : Config.GAP_LARGE.equalsIgnoreCase(gap) ? getString(R.string.gap_large)
+                : getString(R.string.gap_medium);
+        channelGapChoice.setText(getString(R.string.channel_header_gap_state, gapLabel));
+
         followThemeChoice.setSelected(!hasOnTvChoices());
+    }
+
+    private String formatIntervalSeconds(int sec) {
+        if (sec < 60) {
+            return sec == 1 ? getString(R.string.seconds_single) : getString(R.string.seconds_format, sec);
+        }
+        int m = sec / 60;
+        return m == 1 ? getString(R.string.minute_single) : getString(R.string.minutes_format, m);
     }
 
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY);
+                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
+                || choices.contains(Config.CHANNEL_HEADER_GAP_KEY);
     }
 
     private void open(Intent intent) {
@@ -247,5 +299,84 @@ public final class LauncherSettingsActivity extends Activity {
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
         }
+    }
+    private void showWallpaperSourcePicker() {
+        String[] options = {getString(R.string.wallpaper_source_theme), getString(R.string.wallpaper_source_kodi)};
+        int checked = Config.WALLPAPER_SOURCE_KODI.equalsIgnoreCase(wallpaperSource) ? 1 : 0;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.wallpaper_source_title)
+                .setSingleChoiceItems(options, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    choices.edit().putString(Config.WALLPAPER_SOURCE_KEY,
+                            which == 1 ? Config.WALLPAPER_SOURCE_KODI : Config.WALLPAPER_SOURCE_THEME).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showWallpaperIntervalPicker() {
+        String[] labels = new String[INTERVAL_SECONDS.length];
+        int checked = -1;
+        for (int i = 0; i < INTERVAL_SECONDS.length; i++) {
+            int s = INTERVAL_SECONDS[i];
+            if (s < 60) {
+                labels[i] = getString(R.string.seconds_format, s);
+            } else {
+                int m = s / 60;
+                labels[i] = (m == 1 ? getString(R.string.minute_single) : getString(R.string.minutes_format, m))
+                        + " (" + s + "s)";
+            }
+            if (s == wallpaperInterval) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.wallpaper_interval_title)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    choices.edit().putInt(Config.WALLPAPER_INTERVAL_KEY, INTERVAL_SECONDS[which]).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showScreensaverPicker() {
+        String[] labels = new String[SCREENSAVER_MINUTES.length];
+        int checked = 0;
+        for (int i = 0; i < SCREENSAVER_MINUTES.length; i++) {
+            int m = SCREENSAVER_MINUTES[i];
+            labels[i] = m <= 0 ? getString(R.string.screensaver_off)
+                    : (m == 1 ? getString(R.string.minute_single) : getString(R.string.minutes_format, m));
+            if (m == screensaverIdle) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.screensaver_title)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    choices.edit().putInt(Config.SCREENSAVER_IDLE_KEY, SCREENSAVER_MINUTES[which]).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showChannelGapPicker() {
+        String[] options = {getString(R.string.gap_small), getString(R.string.gap_medium), getString(R.string.gap_large)};
+        String gap = choices.getString(Config.CHANNEL_HEADER_GAP_KEY, Config.GAP_MEDIUM);
+        int checked = Config.GAP_SMALL.equalsIgnoreCase(gap) ? 0 : Config.GAP_LARGE.equalsIgnoreCase(gap) ? 2 : 1;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.channel_header_gap_label)
+                .setSingleChoiceItems(options, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    String chosen = which == 0 ? Config.GAP_SMALL : which == 2 ? Config.GAP_LARGE : Config.GAP_MEDIUM;
+                    choices.edit().putString(Config.CHANNEL_HEADER_GAP_KEY, chosen).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 }

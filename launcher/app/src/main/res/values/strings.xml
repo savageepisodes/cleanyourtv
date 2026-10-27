@@ -21,6 +21,8 @@
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
+    <string name="date_format_complete">d MMMM yyyy</string>
+    <string name="date_format_screensaver">EEEE, d MMMM yyyy</string>
     <!-- Date next to the clock on Home; a locale can split it over two lines with \n. -->
     <string name="date_format_home" translatable="false">@string/date_format</string>
     <string name="shamsi_month_farvardin">Farvardin</string>
@@ -45,10 +47,17 @@
     <string name="vpn_off">VPN off</string>
     <string name="home_settings">Choose default home</string>
     <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
+    <string name="android_settings">Android settings</string>
     <string name="launcher_settings">Launcher settings</string>
+    <string name="channels_playlists">Channels &amp; Playlists</string>
     <string name="columns_label">Apps per row</string>
     <string name="rows_below_dock_label">Rows below dock</string>
     <string name="dock_opacity_label">Dock band opacity</string>
+    <string name="channel_header_gap_label">Channel header gap</string>
+    <string name="channel_header_gap_state">Channel header gap: %1$s</string>
+    <string name="gap_small">Small</string>
+    <string name="gap_medium">Medium</string>
+    <string name="gap_large">Large</string>
     <string name="wallpaper_label">Wallpaper</string>
     <string name="wallpaper_state">Wallpaper: %1$s</string>
     <string name="wallpaper_none">None</string>
@@ -145,4 +154,17 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Last opened %1$s</string>
+    <string name="wallpaper_source_title">Wallpaper Source</string>
+    <string name="wallpaper_source_label">Wallpaper Source: %s</string>
+    <string name="wallpaper_source_theme">Default (Theme)</string>
+    <string name="wallpaper_source_kodi">Kodi Fanart</string>
+    <string name="wallpaper_interval_title">Cycle Wallpaper</string>
+    <string name="wallpaper_interval_label">Cycle Wallpaper: %s</string>
+    <string name="screensaver_title">Screensaver Idle</string>
+    <string name="screensaver_label">Screensaver Idle: %s</string>
+    <string name="screensaver_off">Off</string>
+    <string name="seconds_format">%1$d seconds</string>
+    <string name="seconds_single">1 second</string>
+    <string name="minutes_format">%1$d minutes</string>
+    <string name="minute_single">1 minute</string>
 </resources>

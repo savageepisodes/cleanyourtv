@@ -260,6 +260,12 @@
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
     <integer name="columns">4</integer>
 
+    <!-- Live weather next to the date in the header: shows weather icon and temperature.
+         Can also be set with "weather_enabled": true in a theme's config.json. -->
+    <bool name="weather_enabled">false</bool>
+    <string name="weather_city" translatable="false"></string>
+    <string name="weather_units" translatable="false">c</string>
+
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>
     <bool name="advanced_effects">false</bool>

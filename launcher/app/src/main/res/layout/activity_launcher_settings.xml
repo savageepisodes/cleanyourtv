@@ -94,6 +94,26 @@
             android:layout_marginTop="28dp" />
 
         <TextView
+            android:id="@+id/wallpaperSourceChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/wallpaperIntervalChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/screensaverChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/channelGapChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp" />
+
+        <TextView
             android:id="@+id/animationsChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="28dp" />

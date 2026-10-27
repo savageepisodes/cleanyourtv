@@ -224,7 +224,7 @@
 
                     <View
                         android:layout_width="1dp"
-                        android:layout_height="26dp"
+                        android:layout_height="32dp"
                         android:layout_gravity="bottom"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp"
@@ -232,11 +232,10 @@
                         android:background="#33FFFFFF" />
 
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="bottom"
-                        android:layout_marginBottom="9dp"
+                        android:layout_marginBottom="8dp"
                         android:orientation="vertical">
 
                         <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
@@ -255,21 +254,93 @@
                             android:visibility="gone" />
 
                         <TextClock
+                            android:id="@+id/dayOfWeek"
+                            android:gravity="left"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:format12Hour="EEEE"
+                            android:format24Hour="EEEE"
+                            android:textColor="#D9FFFFFF"
+                            android:textSize="14sp"
+                            android:fontFamily="@string/font_medium"
+                            android:letterSpacing="0.14"
+                            android:includeFontPadding="false"
+                            android:textAllCaps="true" />
+
+                        <TextClock
                             android:id="@+id/date"
                             android:gravity="left"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:singleLine="@bool/date_single_line"
-                            android:maxLines="2"
-                            android:lineSpacingExtra="6dp"
-                            android:ellipsize="end"
-                            android:format12Hour="@string/date_format_home"
-                            android:format24Hour="@string/date_format_home"
-                            android:textColor="#A6FFFFFF"
-                            android:textSize="14sp"
+                            android:layout_marginTop="3dp"
+                            android:singleLine="true"
+                            android:format12Hour="@string/date_format_complete"
+                            android:format24Hour="@string/date_format_complete"
+                            android:textColor="#8CFFFFFF"
+                            android:textSize="12sp"
                             android:fontFamily="@string/font_regular"
-                            android:letterSpacing="0.14"
+                            android:letterSpacing="0.10"
+                            android:includeFontPadding="false"
                             android:textAllCaps="true" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/weatherBlock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:visibility="gone">
+
+                        <!-- Divider between dates and weather -->
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginEnd="16dp"
+                            android:background="#33FFFFFF" />
+
+                        <ImageView
+                            android:id="@+id/weatherIcon"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="10dp"
+                            android:scaleType="fitCenter"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/weatherTemp"
+                                android:gravity="left"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:singleLine="true"
+                                android:textColor="#D9FFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@string/font_medium"
+                                android:letterSpacing="0.04"
+                                android:includeFontPadding="false" />
+
+                            <TextView
+                                android:id="@+id/weatherLoc"
+                                android:gravity="left"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="3dp"
+                                android:singleLine="true"
+                                android:textColor="#8CFFFFFF"
+                                android:textSize="12sp"
+                                android:fontFamily="@string/font_regular"
+                                android:letterSpacing="0.04"
+                                android:includeFontPadding="false" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
 
@@ -376,4 +447,112 @@
         android:layout_height="10dp"
         android:alpha="0"
         android:importantForAccessibility="no" />
+
+    <!-- Fullscreen Screensaver Banner: Time, Full Date, Weather all in one row at bottom center -->
+    <LinearLayout
+        android:id="@+id/screensaverBanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="36dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="@drawable/screensaver_pill_bg"
+        android:visibility="gone"
+        android:alpha="0">
+
+        <TextClock
+            android:id="@+id/ssTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="h:mm a"
+            android:format24Hour="HH:mm"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp"
+            android:fontFamily="@string/font_medium"
+            android:letterSpacing="0.04"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+
+        <TextView
+            android:id="@+id/ssDot1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="•"
+            android:textColor="#B3FFFFFF"
+            android:textSize="16sp"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+
+        <TextClock
+            android:id="@+id/ssDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="@string/date_format_screensaver"
+            android:format24Hour="@string/date_format_screensaver"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp"
+            android:fontFamily="@string/font_regular"
+            android:letterSpacing="0.04"
+            android:textAllCaps="true"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+
+        <TextView
+            android:id="@+id/ssDotWeather"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="•"
+            android:textColor="#B3FFFFFF"
+            android:textSize="16sp"
+            android:visibility="gone"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+
+        <LinearLayout
+            android:id="@+id/ssWeatherBlock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ssWeatherIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/ssWeatherText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp"
+                android:fontFamily="@string/font_regular"
+                android:letterSpacing="0.04"
+                android:shadowColor="#80000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>

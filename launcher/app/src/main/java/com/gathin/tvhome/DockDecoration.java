@@ -29,6 +29,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     /** The band's top and bottom the glass gradient was made for; it is remade when they move. */
     private float shaderTop = Float.NaN, shaderBottom = Float.NaN;
 
+    public interface DockOffsetProvider {
+        int getDockStart();
+    }
+    private final DockOffsetProvider dockOffsetProvider;
+
     /**
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
      * @param names       the dock tiles show their names, so the band reaches down over them.
@@ -37,16 +42,22 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
      * @param evenPadding the band's padding is the gap between the tiles on all four sides (dock_even_padding).
      */
     DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass,
-                   boolean evenPadding) {
+                   boolean evenPadding, DockOffsetProvider dockOffsetProvider) {
         this.dockSize = dockSize;
         this.density = density;
         this.namesRoom = names ? 22 * density : 0;
         this.lightGlass = lightGlass;
         this.evenPadding = evenPadding;
+        this.dockOffsetProvider = dockOffsetProvider;
         band.setColor(translucent ? 0x8C121014 : (Math.round(opacity * 2.55f) << 24) | 0x141416);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(lightGlass ? 0x38FFFFFF : translucent ? 0x26FFFFFF : 0x1FFFFFFF);
+    }
+
+    DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass,
+                   boolean evenPadding) {
+        this(dockSize, density, translucent, names, opacity, lightGlass, evenPadding, null);
     }
 
     /** Concentric corners: the band's radius is the tiles' radius plus the band's padding around them. */
@@ -67,7 +78,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent,
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
-        if (pos >= 0 && pos < dockSize) {
+        int dockStart = dockOffsetProvider != null ? dockOffsetProvider.getDockStart() : 0;
+        if (pos >= dockStart && pos < dockStart + dockSize) {
             outRect.top = (int) (6 * density);
             outRect.bottom = (int) (12 * density);
         }
@@ -77,10 +89,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         boolean any = false;
         int cardWidth = 0;
+        int dockStart = dockOffsetProvider != null ? dockOffsetProvider.getDockStart() : 0;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
-            if (pos < 0 || pos >= dockSize) continue;
+            if (pos < dockStart || pos >= dockStart + dockSize) continue;
             RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
             View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
             if (card == null) continue;

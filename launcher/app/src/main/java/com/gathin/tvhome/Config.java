@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,7 +43,16 @@ final class Config {
     static final String SETTINGS_NAME = "launcher_settings";
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
+    static final String WALLPAPER_SOURCE_KEY = "wallpaper_source";
+    static final String WALLPAPER_SOURCE_THEME = "theme";
+    static final String WALLPAPER_SOURCE_KODI = "kodi";
+    static final String WALLPAPER_INTERVAL_KEY = "wallpaper_interval_minutes";
+    static final String SCREENSAVER_IDLE_KEY = "screensaver_idle_minutes";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    static final String CHANNEL_HEADER_GAP_KEY = "channel_header_gap";
+    static final String GAP_SMALL = "small";
+    static final String GAP_MEDIUM = "medium";
+    static final String GAP_LARGE = "large";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -143,17 +153,23 @@ final class Config {
     final boolean keyFilter;
     /** Stock launcher whose home screen is sent back here if the firmware revives it (config.xml stock_home_redirect). */
     final String stockHomeRedirect;
+    /** Live weather next to date in header (config.xml weather_enabled). */
+    final boolean weatherEnabled;
+    final String weatherCity;
+    final String weatherUnits;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
     final boolean settingsKeyPanel;
     /** Home puts the remote's accessibility helpers back after a force stop (restore_key_services; ServiceRepair). */
     final boolean restoreKeyServices;
     /** Whether themes may show a wallpaper (config.json, wallpaper). */
     final boolean wallpaperEnabled;
+    final String wallpaperSource;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Rotating theme images, or the single wallpaper when no collection is configured. */
     final List<File> wallpapers;
     final int wallpaperRotationMinutes;
+    final int wallpaperRotationSeconds;
     final int wallpaperDim;
     /** The dock band's opacity in percent (config.json dock_opacity, 30-100): below 100 the wallpaper shows through. */
     final int dockOpacity;
@@ -204,6 +220,17 @@ final class Config {
     final boolean handleViewInputs;
     /** Hold OK on a tile opens a menu (Move, Remove from Home, App info) instead of App info (config.xml / theme tile_menu). */
     final boolean tileMenu;
+    /** Gap between the top header and the first channel row when placed above the dock: small, medium, large. */
+    final String channelHeaderGap;
+
+    public int channelHeaderGapDp() {
+        if (GAP_SMALL.equalsIgnoreCase(channelHeaderGap)) return 20;
+        if (GAP_LARGE.equalsIgnoreCase(channelHeaderGap)) return 180;
+        try {
+            return Integer.parseInt(channelHeaderGap);
+        } catch (Exception ignored) {}
+        return 80; // medium (default)
+    }
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
@@ -212,13 +239,14 @@ final class Config {
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, boolean appLibrarySelection, int backgroundColor, int skyIntensity,
-                   int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
-                   int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
+                   int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, String wallpaperSource, File wallpaper, List<File> wallpapers,
+                   int wallpaperRotationMinutes, int wallpaperRotationSeconds, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods) {
+                   Map<String, Set<String>> wallpaperMoods, boolean weatherEnabled, String weatherCity, String weatherUnits,
+                   String channelHeaderGap) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -275,9 +303,11 @@ final class Config {
         this.settingsKeyPanel = settingsKeyPanel;
         this.restoreKeyServices = restoreKeyServices;
         this.wallpaperEnabled = wallpaperEnabled;
+        this.wallpaperSource = wallpaperSource != null ? wallpaperSource : WALLPAPER_SOURCE_THEME;
         this.wallpaper = wallpaper;
         this.wallpapers = Collections.unmodifiableList(wallpapers);
         this.wallpaperRotationMinutes = wallpaperRotationMinutes;
+        this.wallpaperRotationSeconds = wallpaperRotationSeconds > 0 ? wallpaperRotationSeconds : Math.max(1, wallpaperRotationMinutes * 60);
         this.wallpaperDim = wallpaperDim;
         this.dockOpacity = dockOpacity;
         this.wallpaperOrder = wallpaperOrder;
@@ -299,6 +329,10 @@ final class Config {
         this.wallpaperMoods = wallpaperMoods;
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
+        this.weatherEnabled = weatherEnabled;
+        this.weatherCity = weatherCity != null ? weatherCity.trim() : "";
+        this.weatherUnits = weatherUnits != null && "f".equalsIgnoreCase(weatherUnits.trim()) ? "f" : "c";
+        this.channelHeaderGap = channelHeaderGap != null ? channelHeaderGap.trim().toLowerCase(Locale.ROOT) : GAP_MEDIUM;
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
@@ -383,6 +417,9 @@ final class Config {
         int cinematicScrim = res.getInteger(R.integer.cinematic_scrim);
         Map<String, Set<String>> wallpaperMoods = moods(res.getString(R.string.wallpaper_moods));
         String glowStyle = res.getString(R.string.glow_style);
+        boolean weatherEnabled = res.getBoolean(R.bool.weather_enabled);
+        String weatherCity = res.getString(R.string.weather_city);
+        String weatherUnits = res.getString(R.string.weather_units);
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -462,6 +499,9 @@ final class Config {
             JSONObject moods = json.optJSONObject("wallpaper_moods");
             if (moods != null) wallpaperMoods = moods(moods);
             glowStyle = string(json, "glow_style", glowStyle);
+            weatherEnabled = bool(json, "weather_enabled", weatherEnabled);
+            weatherCity = string(json, "weather_city", weatherCity);
+            weatherUnits = string(json, "weather_units", weatherUnits);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -494,28 +534,67 @@ final class Config {
         if (wallpapers.isEmpty() && wallpaper != null) wallpapers.add(wallpaper);
         // An on-TV wallpaper pick overrides the theme: a filename from the wallpapers/
         // collection, or "none". Unset means the theme decides (off by default).
-        String wallpaperChoice = choices.getString(WALLPAPER_CHOICE_KEY, null);
-        List<File> chosen = WallpaperRotation.chosen(dir == null ? Collections.emptyList()
-                : WallpaperRotation.images(new File(dir, "wallpapers")), wallpaper, wallpaperChoice);
-        if (chosen != null) {
-            wallpapers.clear();
-            wallpapers.addAll(chosen);
-            wallpaper = chosen.isEmpty() ? null : chosen.get(0);
-            wallpaperEnabled = !chosen.isEmpty();
+        String wallpaperSource = choices.getString(WALLPAPER_SOURCE_KEY, null);
+        if (wallpaperSource == null) {
+            if (json != null && json.has("wallpaper_source")) {
+                wallpaperSource = json.optString("wallpaper_source", WALLPAPER_SOURCE_THEME);
+            } else {
+                List<File> kodiProbe = KodiArtwork.getLandscapeArtwork();
+                wallpaperSource = !kodiProbe.isEmpty() ? WALLPAPER_SOURCE_KODI : WALLPAPER_SOURCE_THEME;
+            }
+        }
+        int chosenInterval = choices.getInt(WALLPAPER_INTERVAL_KEY, -1);
+        int rotationSeconds = rotationMinutes * 60;
+        if (chosenInterval > 0) {
+            rotationSeconds = chosenInterval;
+            rotationMinutes = Math.max(1, chosenInterval / 60);
+        } else if (rotationSeconds <= 0) {
+            rotationSeconds = 15;
+        }
+
+        int chosenScreensaverIdle = choices.getInt(SCREENSAVER_IDLE_KEY, -1);
+        if (chosenScreensaverIdle >= 0) idleClockMinutes = chosenScreensaverIdle;
+
+        if (WALLPAPER_SOURCE_KODI.equalsIgnoreCase(wallpaperSource)) {
+            List<File> kodiImages = KodiArtwork.getLandscapeArtwork();
+            if (!kodiImages.isEmpty()) {
+                wallpapers.clear();
+                wallpapers.addAll(kodiImages);
+                wallpaper = kodiImages.get(0);
+                wallpaperEnabled = true;
+                wallpaperOrder = WallpaperRotation.ORDER_SEQUENTIAL;
+                if (rotationSeconds <= 0) rotationSeconds = 15;
+            }
+        } else {
+            String wallpaperChoice = choices.getString(WALLPAPER_CHOICE_KEY, null);
+            List<File> chosen = WallpaperRotation.chosen(dir == null ? Collections.emptyList()
+                    : WallpaperRotation.images(new File(dir, "wallpapers")), wallpaper, wallpaperChoice);
+            if (chosen != null) {
+                wallpapers.clear();
+                wallpapers.addAll(chosen);
+                wallpaper = chosen.isEmpty() ? null : chosen.get(0);
+                wallpaperEnabled = !chosen.isEmpty();
+            }
         }
         // A festive skin comes only from a theme; config.xml has no festival.
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
+
+        String channelHeaderGap = choices.getString(CHANNEL_HEADER_GAP_KEY, null);
+        if (channelHeaderGap == null) {
+            channelHeaderGap = json != null ? string(json, CHANNEL_HEADER_GAP_KEY, GAP_MEDIUM) : GAP_MEDIUM;
+        }
 
         return new Config(dock, fillDock, hidden, libraryApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
                 packageMap(appBanners), panelService,
                 panelAction, panelExtra, coocaaSources, inputAction, inputUriScheme,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, iconOnlyInputs, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, library, librarySelection, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
-                wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
+                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaperSource, wallpaper,
+                wallpapers, rotationMinutes, rotationSeconds, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
-                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods);
+                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, weatherEnabled, weatherCity, weatherUnits,
+                channelHeaderGap);
     }
 
     /**

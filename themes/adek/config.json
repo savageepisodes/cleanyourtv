@@ -1,0 +1,14 @@
+{
+  "columns": 7,
+  "rows_below_dock": 0,
+  "background_color": "#000000",
+  "wallpaper": true,
+  "wallpaper_source": "kodi",
+  "wallpaper_order": "sequential",
+  "wallpaper_rotation_minutes": 2,
+  "icon_only_buttons": true,
+  "icon_only_inputs": true,
+  "weather_enabled": true,
+  "wallpaper_captions": true,
+  "channel_header_gap": "medium"
+}
