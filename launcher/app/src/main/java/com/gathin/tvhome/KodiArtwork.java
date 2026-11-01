@@ -33,11 +33,16 @@ final class KodiArtwork {
 
     private static List<File> cachedList = null;
     private static final Map<String, String> TITLES = new HashMap<>();
+    private static final Map<String, File> LOGOS = new HashMap<>();
     private static long lastScanTime = 0;
     private static final long SCAN_CACHE_MS = 60 * 1000L;
 
     static synchronized Map<String, String> getTitles() {
         return Collections.unmodifiableMap(TITLES);
+    }
+
+    static synchronized Map<String, File> getLogos() {
+        return Collections.unmodifiableMap(LOGOS);
     }
 
     static synchronized void invalidateCache() {
@@ -101,8 +106,10 @@ final class KodiArtwork {
                         texturesDb.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
 
                 try {
-                    // Query the newest movies and TV shows with fanart, ordered by dateAdded DESC
-                    String movieQuery = "SELECT m.c00 AS title, f.dateAdded AS date_added, a.url AS fanart_url, 'movie' AS type "
+                    // Query the newest movies and TV shows with fanart and optional clearlogo, ordered by dateAdded DESC
+                    String movieQuery = "SELECT m.c00 AS title, f.dateAdded AS date_added, a.url AS fanart_url, "
+                            + "(SELECT a2.url FROM art a2 WHERE a2.media_id = m.idMovie AND a2.media_type = 'movie' AND a2.type IN ('clearlogo', 'logo') LIMIT 1) AS logo_url, "
+                            + "'movie' AS type "
                             + "FROM movie m "
                             + "JOIN files f ON m.idFile = f.idFile "
                             + "JOIN art a ON (a.media_id = m.idMovie AND a.media_type = 'movie' AND a.type = 'fanart') "
@@ -110,25 +117,30 @@ final class KodiArtwork {
 
                     String tvQuery = "SELECT s.c00 AS title, "
                             + "COALESCE((SELECT MAX(ef.dateAdded) FROM episode e JOIN files ef ON e.idFile = ef.idFile WHERE e.idShow = s.idShow), s.c05) AS date_added, "
-                            + "a.url AS fanart_url, 'tvshow' AS type "
+                            + "a.url AS fanart_url, "
+                            + "(SELECT a2.url FROM art a2 WHERE a2.media_id = s.idShow AND a2.media_type = 'tvshow' AND a2.type IN ('clearlogo', 'logo') LIMIT 1) AS logo_url, "
+                            + "'tvshow' AS type "
                             + "FROM tvshow s "
                             + "JOIN art a ON (a.media_id = s.idShow AND a.media_type = 'tvshow' AND a.type = 'fanart') "
                             + "WHERE a.url IS NOT NULL AND a.url != '' ";
 
-                    String combinedSql = "SELECT title, date_added, fanart_url, type FROM ("
+                    String combinedSql = "SELECT title, date_added, fanart_url, logo_url, type FROM ("
                             + movieQuery + "UNION ALL " + tvQuery + ") "
                             + "ORDER BY date_added DESC LIMIT 80";
 
                     List<String> fanartUrls = new ArrayList<>();
                     Map<String, String> urlToTitle = new HashMap<>();
+                    Map<String, String> fanartToLogoUrl = new HashMap<>();
                     Cursor c = vDb.rawQuery(combinedSql, null);
                     try {
                         while (c.moveToNext()) {
                             String title = c.getString(0);
-                            String url = c.getString(2);
-                            if (url != null && !url.isEmpty()) {
-                                fanartUrls.add(url);
-                                if (title != null) urlToTitle.put(url, title);
+                            String fanartUrl = c.getString(2);
+                            String logoUrl = c.getString(3);
+                            if (fanartUrl != null && !fanartUrl.isEmpty()) {
+                                fanartUrls.add(fanartUrl);
+                                if (title != null) urlToTitle.put(fanartUrl, title);
+                                if (logoUrl != null && !logoUrl.isEmpty()) fanartToLogoUrl.put(fanartUrl, logoUrl);
                             }
                         }
                     } finally {
@@ -136,6 +148,7 @@ final class KodiArtwork {
                     }
 
                     TITLES.clear();
+                    LOGOS.clear();
                     Set<String> seenPaths = new HashSet<>();
                     for (String artUrl : fanartUrls) {
                         if (result.size() >= 50) break;
@@ -151,6 +164,24 @@ final class KodiArtwork {
                                         if (title != null) {
                                             TITLES.put(img.getName(), title);
                                         }
+
+                                        String logoUrl = fanartToLogoUrl.get(artUrl);
+                                        if (logoUrl != null) {
+                                            Cursor lc = tDb.rawQuery("SELECT cachedurl FROM texture WHERE url = ? LIMIT 1", new String[]{logoUrl});
+                                            try {
+                                                if (lc.moveToFirst()) {
+                                                    String cachedLogo = lc.getString(0);
+                                                    if (cachedLogo != null && !cachedLogo.isEmpty()) {
+                                                        File logoFile = resolveImageFile(cachedLogo, thumbDir, directDir, kodiDataThumbDir);
+                                                        if (logoFile != null && logoFile.exists()) {
+                                                            LOGOS.put(img.getName(), logoFile);
+                                                        }
+                                                    }
+                                                }
+                                            } finally {
+                                                lc.close();
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -158,7 +189,7 @@ final class KodiArtwork {
                             tc.close();
                         }
                     }
-                    Log.i(TAG, "Loaded " + result.size() + " fanarts from 50 newest movies & tv shows (ordered, not random).");
+                    Log.i(TAG, "Loaded " + result.size() + " fanarts (" + LOGOS.size() + " clearlogos) from 50 newest media.");
                 } finally {
                     try { vDb.close(); } catch (Exception ignored) {}
                     try { tDb.close(); } catch (Exception ignored) {}

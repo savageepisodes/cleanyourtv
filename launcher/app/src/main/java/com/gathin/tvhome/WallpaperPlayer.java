@@ -63,7 +63,9 @@ final class WallpaperPlayer {
     private boolean loading;
     private String displayed = "";
     private TextView caption;
+    private ImageView logoView;
     private final Map<String, String> names = new HashMap<>();
+    private final Map<String, File> logos = new HashMap<>();
     private final Map<String, Set<String>> moods;
     private final String latitude, longitude;
     private LocalDate sunDay;
@@ -130,15 +132,21 @@ final class WallpaperPlayer {
         idleImage = imageB;
 
         Map<String, String> captionNames = Collections.emptyMap();
+        Map<String, File> captionLogos = Collections.emptyMap();
         if (config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()) {
             if (Config.WALLPAPER_SOURCE_KODI.equalsIgnoreCase(config.wallpaperSource)) {
                 captionNames = KodiArtwork.getTitles();
+                captionLogos = KodiArtwork.getLogos();
             } else {
                 captionNames = WallpaperCaptions.read(files.get(0).getParentFile());
             }
         }
         names.putAll(captionNames);
-        caption = names.isEmpty() ? null : makeCaption(context, root);
+        logos.putAll(captionLogos);
+        if (config.wallpaperCaptions) {
+            caption = makeCaption(context, root);
+            logoView = makeLogoView(context, root);
+        }
 
         Log.i("TvHome.Wall", "init: enabled=" + config.wallpaperEnabled + " files=" + files.size() + " interval=" + interval);
         if (config.wallpaperEnabled && !files.isEmpty()) {
@@ -156,19 +164,28 @@ final class WallpaperPlayer {
             KodiArtwork.invalidateCache();
             List<File> freshKodi = KodiArtwork.getLandscapeArtwork();
             Map<String, String> titles = KodiArtwork.getTitles();
+            Map<String, File> freshLogos = KodiArtwork.getLogos();
             if (freshKodi != null && !freshKodi.isEmpty()) {
-                handler.post(() -> refreshFiles(freshKodi, titles));
+                handler.post(() -> refreshFiles(freshKodi, titles, freshLogos));
             }
         });
     }
 
     void refreshFiles(List<File> newFiles, Map<String, String> newCaptions) {
+        refreshFiles(newFiles, newCaptions, null);
+    }
+
+    void refreshFiles(List<File> newFiles, Map<String, String> newCaptions, Map<String, File> newLogos) {
         if (newFiles == null || newFiles.isEmpty() || closed) return;
         boolean wasEmpty = this.files.isEmpty();
         if (!wasEmpty && this.files.size() == newFiles.size() && this.files.equals(newFiles)) {
             if (newCaptions != null) {
                 this.names.clear();
                 this.names.putAll(newCaptions);
+            }
+            if (newLogos != null) {
+                this.logos.clear();
+                this.logos.putAll(newLogos);
             }
             return;
         }
@@ -179,8 +196,13 @@ final class WallpaperPlayer {
             this.names.clear();
             this.names.putAll(newCaptions);
         }
-        if (caption == null && !this.names.isEmpty() && config != null && config.wallpaperCaptions) {
-            caption = makeCaption(context, root);
+        if (newLogos != null) {
+            this.logos.clear();
+            this.logos.putAll(newLogos);
+        }
+        if (config != null && config.wallpaperCaptions) {
+            if (caption == null) caption = makeCaption(context, root);
+            if (logoView == null) logoView = makeLogoView(context, root);
         }
         if (wasEmpty && active && !closed) {
             if (wallpaperContainer.getParent() == null) {
@@ -376,6 +398,20 @@ final class WallpaperPlayer {
         idleImage = outgoing;
     }
 
+    private static ImageView makeLogoView(Context context, FrameLayout root) {
+        float dp = context.getResources().getDisplayMetrics().density;
+        ImageView image = new ImageView(context);
+        image.setScaleType(ImageView.ScaleType.FIT_END);
+        image.setFocusable(false);
+        image.setAlpha(0f);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                Math.round(280 * dp), Math.round(90 * dp), Gravity.TOP | Gravity.END);
+        params.topMargin = Math.round(75 * dp);
+        params.setMarginEnd(Math.round(62 * dp));
+        root.addView(image, params);
+        return image;
+    }
+
     private static TextView makeCaption(Context context, FrameLayout root) {
         float dp = context.getResources().getDisplayMetrics().density;
         TextView text = new TextView(context);
@@ -400,8 +436,47 @@ final class WallpaperPlayer {
     }
 
     private void showCaption(boolean fade) {
-        if (caption == null) return;
+        File logoFile = logos.get(displayed);
         String name = names.get(displayed);
+
+        if (logoFile != null && logoFile.exists() && logoView != null) {
+            decoder.execute(() -> {
+                Bitmap logoBmp = null;
+                try {
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                    logoBmp = BitmapFactory.decodeFile(logoFile.getAbsolutePath(), options);
+                } catch (Throwable ignored) {}
+                final Bitmap bmp = logoBmp;
+                handler.post(() -> {
+                    if (caption != null) caption.setAlpha(0f);
+                    if (logoView == null) return;
+                    if (bmp != null) {
+                        logoView.setImageBitmap(bmp);
+                        if (name != null) logoView.setContentDescription(name);
+                        if (!fade || logoView.getAlpha() == 0f) {
+                            logoView.setAlpha(1f);
+                        } else {
+                            logoView.animate().cancel();
+                            logoView.animate().alpha(0f).setDuration(250).withEndAction(() -> {
+                                logoView.setImageBitmap(bmp);
+                                logoView.animate().alpha(1f).setDuration(350).start();
+                            }).start();
+                        }
+                    } else {
+                        logoView.setAlpha(0f);
+                        showTextCaption(name, fade);
+                    }
+                });
+            });
+        } else {
+            if (logoView != null) logoView.setAlpha(0f);
+            showTextCaption(name, fade);
+        }
+    }
+
+    private void showTextCaption(String name, boolean fade) {
+        if (caption == null) return;
         caption.animate().cancel();
         if (name == null) {
             caption.setAlpha(0f);
