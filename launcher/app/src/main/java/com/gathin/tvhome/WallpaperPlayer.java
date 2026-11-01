@@ -401,13 +401,14 @@ final class WallpaperPlayer {
     private static ImageView makeLogoView(Context context, FrameLayout root) {
         float dp = context.getResources().getDisplayMetrics().density;
         ImageView image = new ImageView(context);
+        image.setAdjustViewBounds(true);
         image.setScaleType(ImageView.ScaleType.FIT_END);
         image.setFocusable(false);
         image.setAlpha(0f);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                Math.round(280 * dp), Math.round(90 * dp), Gravity.TOP | Gravity.END);
-        params.topMargin = Math.round(75 * dp);
-        params.setMarginEnd(Math.round(62 * dp));
+                Math.round(260 * dp), Math.round(75 * dp), Gravity.TOP | Gravity.END);
+        params.topMargin = Math.round(92 * dp);
+        params.setMarginEnd(Math.round(56 * dp));
         root.addView(image, params);
         return image;
     }
@@ -420,6 +421,7 @@ final class WallpaperPlayer {
         text.setShadowLayer(6 * dp, 0, dp, 0xCC000000);
         text.setSingleLine(true);
         text.setEllipsize(TextUtils.TruncateAt.END);
+        text.setGravity(Gravity.END);
         text.setMaxWidth(Math.round(520 * dp));
         text.setFocusable(false);
         text.setAlpha(0f);
@@ -429,8 +431,8 @@ final class WallpaperPlayer {
         }
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-        params.topMargin = Math.round(110 * dp);
-        params.setMarginEnd(Math.round(62 * dp));
+        params.topMargin = Math.round(95 * dp);
+        params.setMarginEnd(Math.round(56 * dp));
         root.addView(text, params);
         return text;
     }
