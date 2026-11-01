@@ -63,6 +63,7 @@ final class WallpaperPlayer {
     private boolean active;
     private boolean closed;
     private boolean loading;
+    private boolean screensaverMode = false;
     private String displayed = "";
     private TextView caption;
     private ImageView logoView;
@@ -146,14 +147,13 @@ final class WallpaperPlayer {
         names.putAll(captionNames);
         logos.putAll(captionLogos);
         if (config.wallpaperCaptions) {
-            caption = makeCaption(context, root);
-            logoView = makeLogoView(context, root);
+            caption = makeCaption(context);
+            logoView = makeLogoView(context);
         }
 
         Log.i("TvHome.Wall", "init: enabled=" + config.wallpaperEnabled + " files=" + files.size() + " interval=" + interval);
         if (config.wallpaperEnabled && !files.isEmpty()) {
-            root.addView(wallpaperContainer, 0, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            attachViewsToRoot();
             showFirst();
         } else {
             Log.w("TvHome.Wall", "init: wallpaper not enabled or files empty! enabled=" + config.wallpaperEnabled + " files=" + files.size());
@@ -203,17 +203,15 @@ final class WallpaperPlayer {
             this.logos.putAll(newLogos);
         }
         if (config != null && config.wallpaperCaptions) {
-            if (caption == null) caption = makeCaption(context, root);
-            if (logoView == null) logoView = makeLogoView(context, root);
+            if (caption == null) caption = makeCaption(context);
+            if (logoView == null) logoView = makeLogoView(context);
         }
         if (wasEmpty && active && !closed) {
-            if (wallpaperContainer.getParent() == null) {
-                root.addView(wallpaperContainer, 0, new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            }
+            attachViewsToRoot();
             showFirst();
             scheduleNextRotation();
         } else if (active && !closed) {
+            attachViewsToRoot();
             scheduleNextRotation();
         }
     }
@@ -426,7 +424,83 @@ final class WallpaperPlayer {
         idleImage = outgoing;
     }
 
-    private static ImageView makeLogoView(Context context, FrameLayout root) {
+    private void attachViewsToRoot() {
+        if (wallpaperContainer.getParent() == null) {
+            root.addView(wallpaperContainer, 0, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        int wallIndex = root.indexOfChild(wallpaperContainer);
+        if (caption != null && caption.getParent() == null) {
+            root.addView(caption, Math.min(wallIndex + 1, root.getChildCount()));
+        }
+        if (logoView != null && logoView.getParent() == null) {
+            root.addView(logoView, Math.min(wallIndex + 2, root.getChildCount()));
+        }
+    }
+
+    void setScreensaverMode(boolean active) {
+        if (this.screensaverMode == active) return;
+        this.screensaverMode = active;
+        applyLogoPosition(true);
+    }
+
+    private void applyLogoPosition(boolean animate) {
+        if (logoView == null && caption == null) return;
+        float dp = context.getResources().getDisplayMetrics().density;
+
+        if (logoView != null) {
+            FrameLayout.LayoutParams logoParams = (FrameLayout.LayoutParams) logoView.getLayoutParams();
+            if (logoParams == null) {
+                logoParams = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, Math.round(75 * dp));
+            }
+            if (screensaverMode) {
+                logoParams.gravity = Gravity.BOTTOM | Gravity.END;
+                logoParams.topMargin = 0;
+                logoParams.bottomMargin = Math.round(40 * dp);
+                logoParams.setMarginEnd(Math.round(56 * dp));
+            } else {
+                logoParams.gravity = Gravity.TOP | Gravity.END;
+                logoParams.topMargin = Math.round(110 * dp);
+                logoParams.bottomMargin = 0;
+                logoParams.setMarginEnd(Math.round(56 * dp));
+            }
+            logoView.setLayoutParams(logoParams);
+        }
+
+        if (caption != null) {
+            FrameLayout.LayoutParams captionParams = (FrameLayout.LayoutParams) caption.getLayoutParams();
+            if (captionParams == null) {
+                captionParams = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
+            if (screensaverMode) {
+                captionParams.gravity = Gravity.BOTTOM | Gravity.END;
+                captionParams.topMargin = 0;
+                captionParams.bottomMargin = Math.round(40 * dp);
+                captionParams.setMarginEnd(Math.round(56 * dp));
+            } else {
+                captionParams.gravity = Gravity.TOP | Gravity.END;
+                captionParams.topMargin = Math.round(110 * dp);
+                captionParams.bottomMargin = 0;
+                captionParams.setMarginEnd(Math.round(56 * dp));
+            }
+            caption.setLayoutParams(captionParams);
+        }
+
+        if (animate) {
+            if (logoView != null && logoView.getAlpha() > 0f) {
+                logoView.setAlpha(0f);
+                logoView.animate().alpha(1f).setDuration(400).start();
+            }
+            if (caption != null && caption.getAlpha() > 0f) {
+                caption.setAlpha(0f);
+                caption.animate().alpha(1f).setDuration(400).start();
+            }
+        }
+    }
+
+    private static ImageView makeLogoView(Context context) {
         float dp = context.getResources().getDisplayMetrics().density;
         ImageView image = new ImageView(context);
         image.setAdjustViewBounds(true);
@@ -439,11 +513,11 @@ final class WallpaperPlayer {
                 ViewGroup.LayoutParams.WRAP_CONTENT, Math.round(75 * dp), Gravity.TOP | Gravity.END);
         params.topMargin = Math.round(110 * dp);
         params.setMarginEnd(Math.round(56 * dp));
-        root.addView(image, params);
+        image.setLayoutParams(params);
         return image;
     }
 
-    private static TextView makeCaption(Context context, FrameLayout root) {
+    private static TextView makeCaption(Context context) {
         float dp = context.getResources().getDisplayMetrics().density;
         TextView text = new TextView(context);
         text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
@@ -463,11 +537,12 @@ final class WallpaperPlayer {
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
         params.topMargin = Math.round(110 * dp);
         params.setMarginEnd(Math.round(56 * dp));
-        root.addView(text, params);
+        text.setLayoutParams(params);
         return text;
     }
 
     private void showCaption(boolean fade) {
+        applyLogoPosition(false);
         File logoFile = logos.get(displayed);
         String name = names.get(displayed);
 

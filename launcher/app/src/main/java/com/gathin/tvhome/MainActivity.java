@@ -122,10 +122,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable showIdleClock = this::activateScreensaver;
     private boolean isScreensaverActive = false;
     private View screensaverBanner;
-    private View ssDotWeather;
     private View ssWeatherBlock;
     private ImageView ssWeatherIcon;
-    private TextView ssWeatherText;
+    private TextView ssWeatherTemp;
+    private TextView ssWeatherLoc;
+    private TextView ssShamsiDate;
     private String liveTvAction;
     private String liveTvInputId;
     /** The app library is on (config.xml, app_library): only then can the tile menu take an app off Home. */
@@ -469,10 +470,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherTemp = findViewById(R.id.weatherTemp);
         weatherLoc = findViewById(R.id.weatherLoc);
         screensaverBanner = findViewById(R.id.screensaverBanner);
-        ssDotWeather = findViewById(R.id.ssDotWeather);
         ssWeatherBlock = findViewById(R.id.ssWeatherBlock);
         ssWeatherIcon = findViewById(R.id.ssWeatherIcon);
-        ssWeatherText = findViewById(R.id.ssWeatherText);
+        ssWeatherTemp = findViewById(R.id.ssWeatherTemp);
+        ssWeatherLoc = findViewById(R.id.ssWeatherLoc);
+        ssShamsiDate = findViewById(R.id.ssShamsiDate);
         updateWeather();
         raceCalendar = cfg.raceCalendar;
         racePanel = findViewById(R.id.racePanel);
@@ -487,6 +489,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
+            if (ssShamsiDate != null) ssShamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
             date.setTextSize(11f);
             date.setPadding(0, (int) (4 * density), 0, 0);
@@ -1372,7 +1375,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                 }
                 weatherBlock.setVisibility(View.VISIBLE);
-                if (ssWeatherBlock != null && ssWeatherIcon != null && ssWeatherText != null && ssDotWeather != null) {
+                if (ssWeatherBlock != null && ssWeatherIcon != null && ssWeatherTemp != null) {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                         try {
                             android.graphics.ImageDecoder.Source src =
@@ -1390,13 +1393,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     } else {
                         ssWeatherIcon.setImageResource(iconRes);
                     }
-                    String t = temp + ("f".equalsIgnoreCase(weatherUnits) ? "°F" : "°C");
-                    if (location != null && !location.isEmpty()) {
-                        t += "  " + location;
+                    ssWeatherTemp.setText(temp + ("f".equalsIgnoreCase(weatherUnits) ? "°F" : "°C"));
+                    if (ssWeatherLoc != null) {
+                        if (location != null && !location.isEmpty()) {
+                            ssWeatherLoc.setText(location);
+                            ssWeatherLoc.setVisibility(View.VISIBLE);
+                        } else {
+                            ssWeatherLoc.setVisibility(View.GONE);
+                        }
                     }
-                    ssWeatherText.setText(t);
                     ssWeatherBlock.setVisibility(View.VISIBLE);
-                    ssDotWeather.setVisibility(View.VISIBLE);
                 }
             }
         });
@@ -2644,7 +2650,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     : getString(R.string.greeting_with_name, getString(res), greetingName));
             greeting.setTextColor(greetingColor);
         }
-        if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
+        if (shamsi) {
+            String sDate = Shamsi.today(getResources());
+            shamsiDate.setText(sDate);
+            if (ssShamsiDate != null) ssShamsiDate.setText(sDate);
+        }
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------
@@ -3816,11 +3826,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             screensaverBanner.setVisibility(View.VISIBLE);
             screensaverBanner.animate().alpha(1f).setDuration(400).start();
         }
+        if (wallpaperPlayer != null) {
+            wallpaperPlayer.setScreensaverMode(true);
+        }
     }
 
     private void dismissScreensaver() {
         if (!isScreensaverActive) return;
         isScreensaverActive = false;
+        if (wallpaperPlayer != null) {
+            wallpaperPlayer.setScreensaverMode(false);
+        }
         if (screensaverBanner != null) {
             screensaverBanner.animate().alpha(0f).setDuration(250).withEndAction(() -> {
                 if (!isScreensaverActive && screensaverBanner != null) screensaverBanner.setVisibility(View.GONE);
