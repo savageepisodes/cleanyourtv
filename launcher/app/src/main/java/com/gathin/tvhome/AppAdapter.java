@@ -401,9 +401,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (isLibraryAt(position)) {
             h.card.setVisibility(View.VISIBLE);
             h.card.setFocusable(true);
-            h.name.setText(null);
-            h.name.setVisibility(View.GONE);
+            h.name.setText(R.string.add_apps);
+            h.name.setVisibility(View.VISIBLE);
             boolean focused = h.card.isFocused();
+            h.name.setAlpha(focused ? 1f : restNameAlpha);
             h.card.setScaleX(focused && animations ? focusScale() : 1f);
             h.card.setScaleY(focused && animations ? focusScale() : 1f);
             h.card.setTranslationY(focused && advancedEffects ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
