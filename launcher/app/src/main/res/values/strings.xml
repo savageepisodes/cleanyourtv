@@ -167,4 +167,8 @@
     <string name="seconds_single">1 second</string>
     <string name="minutes_format">%1$d minutes</string>
     <string name="minute_single">1 minute</string>
+    <string name="optimize">Optimize</string>
+    <string name="optimizing">Optimizing…</string>
+    <string name="optimized_freed">Optimized! %1$d MB freed</string>
+    <string name="optimized_clean">Device is already optimized</string>
 </resources>

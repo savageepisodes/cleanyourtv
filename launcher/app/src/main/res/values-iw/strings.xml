@@ -108,4 +108,8 @@
     <string name="race_live">%1$s · בשידור חי</string>
     <string name="race_finished">הדגל המשובץ</string>
     <string name="last_opened">נפתח לאחרונה %1$s</string>
+    <string name="optimize">מיטוב</string>
+    <string name="optimizing">מבצע מיטוב…</string>
+    <string name="optimized_freed">המיטוב הושלם! שוחררו %1$d מ\"ב</string>
+    <string name="optimized_clean">המכשיר כבר ממוטב</string>
 </resources>

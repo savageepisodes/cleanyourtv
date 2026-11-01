@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Início</string>
     <string name="inputs">Entradas</string>
@@ -108,4 +108,8 @@
     <string name="race_live">%1$s · ao vivo</string>
     <string name="race_finished">Bandeira quadriculada</string>
     <string name="last_opened">Aberto %1$s</string>
+    <string name="optimize">Optimize</string>
+    <string name="optimizing">Optimizing…</string>
+    <string name="optimized_freed">Optimized! %1$d MB freed</string>
+    <string name="optimized_clean">Device is already optimized</string>
 </resources>

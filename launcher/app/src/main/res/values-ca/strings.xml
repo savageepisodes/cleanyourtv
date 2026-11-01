@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Inici</string>
     <string name="inputs">Entrades</string>
@@ -103,4 +103,8 @@
     <string name="race_live">%1$s · en directe</string>
     <string name="race_finished">Bandera de quadres</string>
     <string name="last_opened">Obert per últim cop: %1$s</string>
+    <string name="optimize">Optimize</string>
+    <string name="optimizing">Optimizing…</string>
+    <string name="optimized_freed">Optimized! %1$d MB freed</string>
+    <string name="optimized_clean">Device is already optimized</string>
 </resources>

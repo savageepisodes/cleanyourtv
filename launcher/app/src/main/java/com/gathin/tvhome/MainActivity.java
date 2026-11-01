@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -182,8 +183,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View clockBlock;
     private View btnInputs;
+    private View btnOptimize;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
+    private boolean showOptimizerPill = true;
     private TextView btnWifi;
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
@@ -667,8 +670,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        btnOptimize = findViewById(R.id.btnOptimize);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        btnOptimize.setOnClickListener(v -> optimizeDevice());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
@@ -685,6 +690,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
         showInputsPill = cfg.showInputsPill;
+        showOptimizerPill = cfg.showOptimizerPill;
+        if (!showOptimizerPill) btnOptimize.setVisibility(View.GONE);
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
         btnLibraryTop.setOnClickListener(v -> {
             onLibraryRequested();
@@ -703,6 +710,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // label up to date, which the menu's Wi-Fi row shows.
             showInputsPill = false;
             btnInputs.setVisibility(View.GONE);
+            btnOptimize.setVisibility(View.GONE);
             btnWifi.setVisibility(View.GONE);
             ((TextView) btnSettings).setText(R.string.settings);
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
@@ -722,6 +730,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        if (iconOnlyButtons || cfg.iconOnlyInputs) makeIconOnly((TextView) btnOptimize);
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -737,19 +746,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            int firstButton = firstTopButton().getId();
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        btnOptimize.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
+            for (View button : new View[]{btnOptimize, btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
@@ -2460,10 +2470,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hideHero();
     }
 
-    /** The first top-bar button after Inputs that is shown: the network pill, Reorder, then Settings (always there). */
+    /** The first top-bar button that is shown: Optimize, Inputs, Wi-Fi, Reorder, then Settings (always there). */
     private View firstTopButton() {
-        if (btnWifi.getVisibility() == View.VISIBLE) return btnWifi;
-        if (btnReorder.getVisibility() == View.VISIBLE) return btnReorder;
+        if (btnOptimize != null && btnOptimize.getVisibility() == View.VISIBLE) return btnOptimize;
+        if (btnInputs != null && btnInputs.getVisibility() == View.VISIBLE) return btnInputs;
+        if (btnWifi != null && btnWifi.getVisibility() == View.VISIBLE) return btnWifi;
+        if (btnReorder != null && btnReorder.getVisibility() == View.VISIBLE) return btnReorder;
         return findViewById(R.id.btnSettings);
     }
 
@@ -3824,6 +3836,101 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (ambient != null) ambient.animate().alpha(1f).setDuration(250).start();
         if (glass != null) glass.animate().alpha(1f).setDuration(250).start();
         restartIdleClock();
+    }
+
+    private void optimizeDevice() {
+        if (btnOptimize != null) {
+            btnOptimize.setEnabled(false);
+            btnOptimize.animate().rotationBy(360f).setDuration(600).start();
+        }
+        Toast.makeText(this, R.string.optimizing, Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+            long beforeAvail = getAvailableMemoryMb();
+
+            // 1. Kill background processes for all non-launcher apps
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                PackageManager pm = getPackageManager();
+                List<ApplicationInfo> packages = pm.getInstalledApplications(0);
+                String myPkg = getPackageName();
+                for (ApplicationInfo app : packages) {
+                    if (!app.packageName.equals(myPkg)
+                            && !app.packageName.equals("com.android.systemui")
+                            && !app.packageName.startsWith("com.google.android.inputmethod")) {
+                        try {
+                            am.killBackgroundProcesses(app.packageName);
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            // 2. Clean internal application cache
+            try {
+                deleteDir(getCacheDir());
+                deleteDir(getCodeCacheDir());
+                File extCache = getExternalCacheDir();
+                if (extCache != null) deleteDir(extCache);
+            } catch (Exception ignored) {}
+
+            // 3. Trim memory and invoke Garbage Collection
+            System.gc();
+            System.runFinalization();
+            System.gc();
+
+            try {
+                Thread.sleep(600);
+            } catch (InterruptedException ignored) {}
+
+            long afterAvail = getAvailableMemoryMb();
+            long freedMb = afterAvail - beforeAvail;
+
+            runOnUiThread(() -> {
+                if (btnOptimize != null) btnOptimize.setEnabled(true);
+                if (freedMb > 0) {
+                    Toast.makeText(this, getString(R.string.optimized_freed, freedMb), Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, R.string.optimized_clean, Toast.LENGTH_SHORT).show();
+                }
+                if (showStats && statsBg != null) {
+                    statsBg.post(() -> {
+                        String line = readStatsLine();
+                        handler.post(() -> {
+                            if (showStats && stats != null) stats.setText(line);
+                        });
+                    });
+                }
+            });
+        }).start();
+    }
+
+    private long getAvailableMemoryMb() {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(mi);
+                return mi.availMem / (1024 * 1024);
+            }
+        } catch (Exception ignored) {}
+        long[] mem = memUsedOfTotalMb();
+        return mem != null ? Math.max(0, mem[1] - mem[0]) : 0;
+    }
+
+    private static boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            if (children != null) {
+                for (String child : children) {
+                    boolean success = deleteDir(new File(dir, child));
+                    if (!success) return false;
+                }
+            }
+            return dir.delete();
+        } else if (dir != null && dir.isFile()) {
+            return dir.delete();
+        }
+        return false;
     }
 
 }

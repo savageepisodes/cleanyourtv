@@ -377,6 +377,13 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/btnOptimize"
+                    style="@style/TopButton"
+                    android:text="@string/optimize"
+                    android:drawableStart="@drawable/ic_optimize"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"

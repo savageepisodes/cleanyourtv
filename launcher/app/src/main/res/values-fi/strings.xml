@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Koti</string>
     <string name="inputs">Lähteet</string>
@@ -93,4 +93,8 @@
     <string name="tile_add_to_dock">Lisää telakkaan</string>
     <string name="tile_replace_in_dock">Korvaa toisella sovelluksella</string>
     <string name="dock_edit_pick_place">Valitse telakan paikka tälle sovellukselle ja paina OK. Takaisin peruuttaa.</string>
+    <string name="optimize">Optimize</string>
+    <string name="optimizing">Optimizing…</string>
+    <string name="optimized_freed">Optimized! %1$d MB freed</string>
+    <string name="optimized_clean">Device is already optimized</string>
 </resources>

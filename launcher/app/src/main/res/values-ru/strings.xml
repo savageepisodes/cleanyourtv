@@ -145,4 +145,8 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Последний запуск: %1$s</string>
+    <string name="optimize">Очистить</string>
+    <string name="optimizing">Очистка…</string>
+    <string name="optimized_freed">Очищено! Освобождено %1$d МБ</string>
+    <string name="optimized_clean">Устройство уже оптимизировано</string>
 </resources>

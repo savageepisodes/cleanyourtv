@@ -104,4 +104,8 @@
     <string name="race_live">%1$s · langsung</string>
     <string name="race_finished">Bendera finis</string>
     <string name="last_opened">Terakhir dibuka %1$s</string>
+    <string name="optimize">Optimalkan</string>
+    <string name="optimizing">Mengoptimalkan…</string>
+    <string name="optimized_freed">Dioptimalkan! %1$d MB dibebaskan</string>
+    <string name="optimized_clean">Perangkat sudah optimal</string>
 </resources>

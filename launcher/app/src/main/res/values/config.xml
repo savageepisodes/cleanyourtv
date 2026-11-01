@@ -226,6 +226,8 @@
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>
+    <!-- The Optimizer pill in the top bar, shown before Inputs. One-click device and memory optimization. Can also be set with "show_optimizer_pill" in a theme. -->
+    <bool name="show_optimizer_pill">true</bool>
     <!-- Names under every tile, not only the focused one: unfocused names stay dimmed, the focused one is full white.
          With dock_row the band grows down to hold the dock's names too. -->
     <bool name="always_show_names">false</bool>

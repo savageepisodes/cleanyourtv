@@ -63,4 +63,8 @@
         <item quantity="other">%1$d 个应用</item>
     </plurals>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <string name="optimize">优化</string>
+    <string name="optimizing">正在优化…</string>
+    <string name="optimized_freed">优化完成！已释放 %1$d MB</string>
+    <string name="optimized_clean">设备状态良好，无需优化</string>
 </resources>

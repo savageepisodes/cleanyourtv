@@ -428,6 +428,13 @@
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
+
+                <TextView
+                    android:id="@+id/btnOptimize"
+                    style="@style/TopButton"
+                    android:text="@string/optimize"
+                    android:drawableStart="@drawable/ic_optimize"
+                    android:nextFocusDown="@+id/grid" />
             </LinearLayout>
         </RelativeLayout>
 
