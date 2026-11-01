@@ -173,4 +173,8 @@
     <string name="optimizing">Optimizing…</string>
     <string name="optimized_freed">Optimized! %1$d MB freed</string>
     <string name="optimized_clean">Device is already optimized</string>
+    <string name="top_buttons_label">Top buttons</string>
+    <string name="top_buttons_state">Top buttons: %s</string>
+    <string name="top_buttons_icon_only">Icon only</string>
+    <string name="top_buttons_with_label">With text label</string>
 </resources>

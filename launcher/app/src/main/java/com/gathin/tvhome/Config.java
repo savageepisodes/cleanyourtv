@@ -50,6 +50,7 @@ final class Config {
     static final String SCREENSAVER_IDLE_KEY = "screensaver_idle_minutes";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
     static final String CHANNEL_HEADER_GAP_KEY = "channel_header_gap";
+    static final String ICON_ONLY_BUTTONS_KEY = "icon_only_buttons";
     static final String GAP_SMALL = "small";
     static final String GAP_MEDIUM = "medium";
     static final String GAP_LARGE = "large";
@@ -528,6 +529,10 @@ final class Config {
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
         int dockOpacity = json == null ? 100 : integer(json, "dock_opacity", 100, 30, 100);
         dockOpacity = chosenDockOpacity(choices.getInt(DOCK_OPACITY_KEY, -1), dockOpacity);
+        if (choices.contains(ICON_ONLY_BUTTONS_KEY)) {
+            iconOnlyButtons = choices.getBoolean(ICON_ONLY_BUTTONS_KEY, iconOnlyButtons);
+            iconOnlyInputs = iconOnlyButtons;
+        }
         String wallpaperOrder = json == null ? WallpaperRotation.ORDER_SHUFFLE
                 : string(json, "wallpaper_order", WallpaperRotation.ORDER_SHUFFLE);
         // An unknown order must not silently change how an existing collection rotates.
@@ -643,11 +648,12 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(ICON_ONLY_BUTTONS_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
+                    .remove(ICON_ONLY_BUTTONS_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }

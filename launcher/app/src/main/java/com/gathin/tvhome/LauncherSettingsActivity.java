@@ -28,6 +28,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView wallpaperIntervalChoice;
     private TextView screensaverChoice;
     private TextView channelGapChoice;
+    private TextView topButtonsChoice;
     private String wallpaperSource;
     private int wallpaperInterval;
     private int screensaverIdle;
@@ -113,6 +114,8 @@ public final class LauncherSettingsActivity extends Activity {
         screensaverChoice.setOnClickListener(v -> showScreensaverPicker());
         channelGapChoice = findViewById(R.id.channelGapChoice);
         channelGapChoice.setOnClickListener(v -> showChannelGapPicker());
+        topButtonsChoice = findViewById(R.id.topButtonsChoice);
+        topButtonsChoice.setOnClickListener(v -> showTopButtonsPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -140,7 +143,8 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.CHANNEL_HEADER_GAP_KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.CHANNEL_HEADER_GAP_KEY)
+                    .remove(Config.ICON_ONLY_BUTTONS_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -275,6 +279,13 @@ public final class LauncherSettingsActivity extends Activity {
                 : getString(R.string.gap_medium);
         channelGapChoice.setText(getString(R.string.channel_header_gap_state, gapLabel));
 
+        Config config = Config.load(this);
+        boolean iconOnly = choices.contains(Config.ICON_ONLY_BUTTONS_KEY)
+                ? choices.getBoolean(Config.ICON_ONLY_BUTTONS_KEY, false)
+                : config.iconOnlyButtons;
+        topButtonsChoice.setText(getString(R.string.top_buttons_state,
+                getString(iconOnly ? R.string.top_buttons_icon_only : R.string.top_buttons_with_label)));
+
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
@@ -290,7 +301,7 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(Config.CHANNEL_HEADER_GAP_KEY);
+                || choices.contains(Config.CHANNEL_HEADER_GAP_KEY) || choices.contains(Config.ICON_ONLY_BUTTONS_KEY);
     }
 
     private void open(Intent intent) {
@@ -373,6 +384,25 @@ public final class LauncherSettingsActivity extends Activity {
                     dialog.dismiss();
                     String chosen = which == 0 ? Config.GAP_SMALL : which == 2 ? Config.GAP_LARGE : Config.GAP_MEDIUM;
                     choices.edit().putString(Config.CHANNEL_HEADER_GAP_KEY, chosen).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showTopButtonsPicker() {
+        Config config = Config.load(this);
+        boolean iconOnly = choices.contains(Config.ICON_ONLY_BUTTONS_KEY)
+                ? choices.getBoolean(Config.ICON_ONLY_BUTTONS_KEY, false)
+                : config.iconOnlyButtons;
+        String[] options = {getString(R.string.top_buttons_icon_only), getString(R.string.top_buttons_with_label)};
+        int checked = iconOnly ? 0 : 1;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.top_buttons_label)
+                .setSingleChoiceItems(options, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    choices.edit().putBoolean(Config.ICON_ONLY_BUTTONS_KEY, which == 0).apply();
                     changed();
                     refresh();
                 })
