@@ -110,6 +110,8 @@
     <string name="reorder_hint">OK picks up an app, arrows move it, Back places it. Back again to finish.</string>
     <string name="reorder_not_saved">Couldn\'t save the new order</string>
     <string name="app_library">App library</string>
+    <string name="add_apps">Add apps</string>
+    <string name="hide_app">Hide app</string>
     <string name="library_empty">No launchable apps found</string>
     <string name="library_on_home">On Home</string>
     <string name="library_add_home">Add to Home</string>

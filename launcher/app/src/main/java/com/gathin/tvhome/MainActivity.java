@@ -569,7 +569,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override public int getSpanSize(int position) { return adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1; }
+            @Override public int getSpanSize(int position) { return 1; }
         });
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
@@ -974,7 +974,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.setHasFixedSize(true);
             ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                 @Override public int getSpanSize(int position) {
-                    return adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1;
+                    return 1;
                 }
             });
             grid.setAdapter(adapter);
@@ -992,7 +992,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (position < aboveCount) return COLUMNS;
                 int appPos = position - aboveCount;
                 if (appPos < appCount) {
-                    return adapter != null && adapter.isLibraryAt(appPos) ? COLUMNS : 1;
+                    return 1;
                 }
                 return COLUMNS;
             }
@@ -2315,16 +2315,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
-        int count = adapter.appCount();
+        int count = adapter.getItemCount();
         int target;
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
         // escapes up into the top bar. Mid-row moves fall through to the default focus search.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
-            if (forward && position == adapter.focusablePosition(count - 1) && adapter.isLibraryAt(count)) {
-                focusLibrary();
-                return true;
-            }
             // In the dock, the last app is the row's end: the empty slots after it take no focus.
             int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
             return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
@@ -2347,7 +2342,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     focusChannelRowCard(false, 0, position - lastRowStart);
                     return true;
                 }
-                if (adapter.isLibraryAt(count)) focusLibrary();
                 return true;
             }
             target = Math.min(position + COLUMNS, count - 1);
@@ -2453,8 +2447,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     public void focusTileFromBelowChannel(int cardIndex) {
-        if (adapter == null || adapter.appCount() == 0) return;
-        int count = adapter.appCount();
+        if (adapter == null || adapter.getItemCount() == 0) return;
+        int count = adapter.getItemCount();
         int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
         int target = Math.min(lastRowStart + cardIndex, count - 1);
         focusTile(target);
@@ -2491,46 +2485,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void focusLibrary() {
-        cancelPendingFocusScroll();
         int position = adapter.appCount();
         if (!adapter.isLibraryAt(position)) return;
-        int gridPos = gridPositionForApp(position);
-        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(gridPos);
-        if (holder != null) {
-            View button = holder.itemView.findViewById(R.id.btnLibrary);
-            Rect visible = new Rect();
-            if (button != null && button.getGlobalVisibleRect(visible) && visible.height() >= button.getHeight()) {
-                if (button.requestFocus()) libraryFocusPending = false;
-                return;
-            }
-        }
-        if (!animations) {
-            grid.scrollToPosition(gridPos);
-            grid.post(() -> {
-                if (appLibrary != null || !hasWindowFocus()) return;
-                RecyclerView.ViewHolder footer = grid.findViewHolderForAdapterPosition(gridPos);
-                if (footer != null && adapter.isLibraryAt(adapter.appCount())) {
-                    View btn = footer.itemView.findViewById(R.id.btnLibrary);
-                    if (btn != null && btn.requestFocus()) libraryFocusPending = false;
-                }
-            });
-            return;
-        }
-        pendingFocusScroll = new RecyclerView.OnScrollListener() {
-            @Override public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
-                if (state != RecyclerView.SCROLL_STATE_IDLE) return;
-                rv.removeOnScrollListener(this);
-                if (pendingFocusScroll != this) return;
-                pendingFocusScroll = null;
-                RecyclerView.ViewHolder footer = rv.findViewHolderForAdapterPosition(gridPos);
-                if (footer != null) {
-                    View btn = footer.itemView.findViewById(R.id.btnLibrary);
-                    if (btn != null && btn.requestFocus()) libraryFocusPending = false;
-                }
-            }
-        };
-        grid.addOnScrollListener(pendingFocusScroll);
-        grid.smoothScrollToPosition(gridPos);
+        focusTile(position);
     }
 
     private void cancelPendingFocusScroll() {
@@ -2551,12 +2508,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void focusTile(int position) {
         libraryFocusPending = false;
         cancelPendingFocusScroll();
-        if (adapter.appCount() == 0) {
-            if (adapter.isLibraryAt(0)) focusLibrary();
-            else firstTopButton().requestFocus();
+        if (adapter.getItemCount() == 0) {
+            firstTopButton().requestFocus();
             return;
         }
-        final int pos = adapter.focusablePosition(Math.max(0, Math.min(position, adapter.appCount() - 1)));
+        final int maxPos = adapter.getItemCount() - 1;
+        final int pos = adapter.isLibraryAt(position) ? position : adapter.focusablePosition(Math.max(0, Math.min(position, maxPos)));
         final int gridPos = gridPositionForApp(pos);
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(gridPos);
         if (vh != null) {
@@ -3341,6 +3298,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             addSettingsMenuRow(rows, popup, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
                     () -> startDockEditFor(key, inDock));
         }
+        addSettingsMenuRow(rows, popup, R.string.hide_app, () -> {
+            if (LibraryApps.save(this, pkg, false)) reloadApps(false);
+            else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
+        });
+        addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(new Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
         if (position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
             if (!beginReorder()) return;
             int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
@@ -3349,12 +3312,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pickUp(at);
             Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
         });
-        if (appLibraryEnabled) addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
-            if (LibraryApps.save(this, pkg, false)) reloadApps(false);
-            else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
-        });
-        addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(new Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         // Dock tiles sit near the bottom of the screen: open the menu above the tile when it would not fit below.

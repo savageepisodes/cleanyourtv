@@ -10,5 +10,7 @@
   "icon_only_inputs": true,
   "weather_enabled": true,
   "wallpaper_captions": true,
-  "channel_header_gap": "medium"
+  "channel_header_gap": "medium",
+  "app_library": true,
+  "tile_menu": true
 }
