@@ -366,7 +366,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
             sky.update();
-            wallpaperPlayer.update();
             wallpaperPlayer.refreshKodiArtwork();
             updateWeather();
             handler.postDelayed(this, MINUTE_MS);

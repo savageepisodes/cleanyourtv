@@ -57,6 +57,10 @@ A new key needs one there in the same pull request.
 | `reorder_button` | bool | A reorder button in the top bar (`false` by default); reordering is always in the Settings button's long-press menu |
 | `show_network_pill` | bool | The Wi-Fi/Ethernet pill in the top bar (`true` by default); `false` hides it |
 | `show_inputs_pill` | bool | The Inputs pill in the top bar, shown when the TV has inputs (`true` by default); `false` hides it; what the remote's Input button does is unchanged |
+| `show_optimizer_pill` | bool | The optimizer pill next to Inputs on the top bar; click trims cache and background memory (`false` by default) |
+| `weather_enabled` | bool | Live weather next to the date in the header: shows weather icon and temperature (`false` by default) |
+| `weather_city` | string | City or location name for weather lookup; empty for automatic |
+| `weather_units` | string | Weather temperature units: `"c"` for Celsius or `"f"` for Fahrenheit (`"c"` by default) |
 | `icon_only_buttons` | bool | Wi-Fi and Settings as round icon buttons; Inputs keeps its label (`false` by default) |
 | `icon_only_inputs` | bool | The Inputs pill as a round icon button too, its label kept as the TalkBack description (`false` by default). Works with or without `icon_only_buttons` |
 | `top_menu` | bool | Inputs, Wi-Fi and Settings folded into one round gear, centred on the header: OK drops a menu with the three, hold OK keeps the launcher menu (`false` by default) |

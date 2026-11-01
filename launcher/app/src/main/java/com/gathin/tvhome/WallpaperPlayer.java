@@ -50,7 +50,9 @@ final class WallpaperPlayer {
     private final long interval;
     private final String order;
     private final SharedPreferences preferences;
-    private final ExecutorService decoder = Executors.newSingleThreadExecutor();
+    private final ExecutorService wallpaperDecoder = Executors.newSingleThreadExecutor();
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private ObjectAnimator currentFadeIn = null;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Random random = new Random();
     private final int width;
@@ -160,7 +162,7 @@ final class WallpaperPlayer {
 
     void refreshKodiArtwork() {
         if (closed || config == null || !Config.WALLPAPER_SOURCE_KODI.equalsIgnoreCase(config.wallpaperSource)) return;
-        decoder.execute(() -> {
+        ioExecutor.execute(() -> {
             KodiArtwork.invalidateCache();
             List<File> freshKodi = KodiArtwork.getLandscapeArtwork();
             Map<String, String> titles = KodiArtwork.getTitles();
@@ -295,7 +297,12 @@ final class WallpaperPlayer {
         handler.removeCallbacks(rotateRunnable);
         cancelKenBurns(activeImage);
         cancelKenBurns(idleImage);
-        decoder.shutdownNow();
+        if (currentFadeIn != null) {
+            currentFadeIn.cancel();
+            currentFadeIn = null;
+        }
+        wallpaperDecoder.shutdownNow();
+        ioExecutor.shutdownNow();
     }
 
     void update() {
@@ -317,7 +324,7 @@ final class WallpaperPlayer {
         int nextIdx = playable.indexOf(next);
         Log.i("TvHome.Wall", "update: picked next [" + (nextIdx >= 0 ? (nextIdx + 1) : 0) + "/" + playable.size() + "] = " + next.getName() + " (order=" + order + ")");
         loading = true;
-        decoder.execute(() -> {
+        wallpaperDecoder.execute(() -> {
             Bitmap bitmap = decode(next);
             root.post(() -> {
                 loading = false;
@@ -328,7 +335,7 @@ final class WallpaperPlayer {
                 if (bitmap == null) {
                     files.remove(next);
                     Log.w("TvHome.Wall", "Skipping unreadable image: " + next.getName());
-                    update();
+                    handler.postDelayed(this::update, 500);
                     return;
                 }
                 show(bitmap);
@@ -366,32 +373,53 @@ final class WallpaperPlayer {
     }
 
     private void show(Bitmap bitmap) {
-        final Bitmap old = current;
+        if (bitmap == null) return;
         current = bitmap;
 
         final ImageView incoming = idleImage;
         final ImageView outgoing = activeImage;
 
+        if (currentFadeIn != null) {
+            currentFadeIn.cancel();
+            currentFadeIn = null;
+        }
+
+        outgoing.setVisibility(View.VISIBLE);
+        outgoing.setAlpha(1.0f);
+
         incoming.setImageBitmap(bitmap);
         incoming.setVisibility(View.VISIBLE);
         incoming.setAlpha(0f);
+        incoming.setScaleX(1.0f);
+        incoming.setScaleY(1.0f);
         incoming.bringToFront();
 
         // 1. Continuous slow zoom-in Ken Burns animation on incoming view
         startKenBurns(incoming);
 
-        // 2. Smooth crossfade: fade incoming in to 1.0f over 1200ms
+        // 2. Smooth crossfade: fade incoming in to 1.0f over 1000ms
         ObjectAnimator fadeIn = ObjectAnimator.ofFloat(incoming, View.ALPHA, 0f, 1f);
-        fadeIn.setDuration(1200);
+        fadeIn.setDuration(1000);
         fadeIn.addListener(new AnimatorListenerAdapter() {
+            private boolean cancelled = false;
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                cancelled = true;
+            }
+
             @Override
             public void onAnimationEnd(Animator animation) {
+                if (cancelled) return;
                 cancelKenBurns(outgoing);
                 outgoing.setVisibility(View.INVISIBLE);
                 outgoing.setImageBitmap(null);
-                if (old != null && old != bitmap) old.recycle();
+                if (currentFadeIn == animation) {
+                    currentFadeIn = null;
+                }
             }
         });
+        currentFadeIn = fadeIn;
         fadeIn.start();
 
         activeImage = incoming;
@@ -402,12 +430,14 @@ final class WallpaperPlayer {
         float dp = context.getResources().getDisplayMetrics().density;
         ImageView image = new ImageView(context);
         image.setAdjustViewBounds(true);
+        image.setMaxWidth(Math.round(260 * dp));
+        image.setMaxHeight(Math.round(75 * dp));
         image.setScaleType(ImageView.ScaleType.FIT_END);
         image.setFocusable(false);
         image.setAlpha(0f);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                Math.round(260 * dp), Math.round(75 * dp), Gravity.TOP | Gravity.END);
-        params.topMargin = Math.round(92 * dp);
+                ViewGroup.LayoutParams.WRAP_CONTENT, Math.round(75 * dp), Gravity.TOP | Gravity.END);
+        params.topMargin = Math.round(110 * dp);
         params.setMarginEnd(Math.round(56 * dp));
         root.addView(image, params);
         return image;
@@ -431,7 +461,7 @@ final class WallpaperPlayer {
         }
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-        params.topMargin = Math.round(95 * dp);
+        params.topMargin = Math.round(110 * dp);
         params.setMarginEnd(Math.round(56 * dp));
         root.addView(text, params);
         return text;
@@ -442,7 +472,7 @@ final class WallpaperPlayer {
         String name = names.get(displayed);
 
         if (logoFile != null && logoFile.exists() && logoView != null) {
-            decoder.execute(() -> {
+            ioExecutor.execute(() -> {
                 Bitmap logoBmp = null;
                 try {
                     BitmapFactory.Options options = new BitmapFactory.Options();
