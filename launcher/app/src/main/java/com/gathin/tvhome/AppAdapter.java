@@ -15,9 +15,11 @@ import android.graphics.Outline;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +27,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -398,23 +401,35 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (isLibraryAt(position)) {
             h.card.setVisibility(View.VISIBLE);
             h.card.setFocusable(true);
-            h.name.setText(R.string.add_apps);
-            h.name.setVisibility(View.VISIBLE);
+            h.name.setText(null);
+            h.name.setVisibility(View.GONE);
             boolean focused = h.card.isFocused();
-            h.name.setAlpha(focused ? 1f : restNameAlpha);
             h.card.setScaleX(focused && animations ? focusScale() : 1f);
             h.card.setScaleY(focused && animations ? focusScale() : 1f);
             h.card.setTranslationY(focused && advancedEffects ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
             h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
             h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
             h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
-            h.card.setBackground(h.cardBackground);
             h.banner.setImageDrawable(null);
             h.banner.setVisibility(View.GONE);
+
+            float density = ctx.getResources().getDisplayMetrics().density;
+            int cardW = h.card.getLayoutParams().width > 0 ? h.card.getLayoutParams().width : h.card.getWidth();
+            GradientDrawable bg = new GradientDrawable();
+            bg.setShape(GradientDrawable.RECTANGLE);
+            bg.setColor(0x80000000);
+            bg.setCornerRadius(cornerRadius(cardW, density));
+            h.card.setBackground(bg);
+
+            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) h.icon.getLayoutParams();
+            iconLp.gravity = Gravity.CENTER;
+            iconLp.bottomMargin = 0;
+            h.icon.setLayoutParams(iconLp);
             h.icon.setImageResource(R.drawable.ic_add);
             h.icon.setVisibility(View.VISIBLE);
-            h.label.setText(R.string.add_apps);
-            h.label.setVisibility(View.VISIBLE);
+
+            h.label.setText(null);
+            h.label.setVisibility(View.GONE);
             h.card.setOnClickListener(v -> listener.onLibraryRequested());
             h.card.setOnLongClickListener(null);
             return;
@@ -447,6 +462,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // A fully opaque banner covers the whole card (centerCrop), so the card's own fill under it is drawn for
         // nothing on every frame; keep it under banners with transparent parts and under icon tiles.
         h.card.setBackground(e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? null : h.cardBackground);
+        FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) h.icon.getLayoutParams();
+        int defaultIconBottom = Math.round(14 * ctx.getResources().getDisplayMetrics().density);
+        if (iconLp.bottomMargin != defaultIconBottom) {
+            iconLp.gravity = Gravity.CENTER;
+            iconLp.bottomMargin = defaultIconBottom;
+            h.icon.setLayoutParams(iconLp);
+        }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
